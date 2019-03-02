@@ -133,6 +133,9 @@ namespace caffe {
       int64_t total_send_;
       int64_t total_update_;
 
+      void calc_staleness(int);
+      std::vector<int64_t> last_comms;
+
       // iter for different blobs
       // param_id, part_id
       std::map<std::pair<int, int>, int64_t> async_iter_;

@@ -324,14 +324,16 @@ int train() {
 #ifdef USE_MLSL
   if (caffe::mn::is_multinode()) {
     caffe::mn::barrier();
+    char hostname[1024];
+    gethostname(hostname, 1024);
     LOG(INFO) << "Configuring multinode setup";
     if (!caffe::mn::is_param_server()) {
       caffe::MultiSync<float> sync(solver);
-      LOG(INFO) << "Starting Multi-node Optimization in MLSL environment";
+      LOG(INFO) << "Starting Multi-node Optimization in MLSL environment on node " << hostname ;
       sync.run();
     } else {
       caffe::mn::AsyncParamServer<float> aps(solver);
-      LOG(INFO) << "Starting Parameter Server";
+      LOG(INFO) << "Starting Parameter Server on node " << hostname;
       aps.Run();
     }
   } else

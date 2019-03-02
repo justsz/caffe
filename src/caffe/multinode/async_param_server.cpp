@@ -65,6 +65,7 @@ namespace caffe {
       const std::vector<bool>& layer_need_backward{ net->layer_need_backward() };
      
       for (int i = 0; i < get_num_groups(); i++) {
+        last_comms.push_back(0);
         int root_rank = get_group_root_rank(i);
         //iterate over layers and skip the ones without params
         for (int j = 0; j < net->layers().size(); j++) {
@@ -168,6 +169,7 @@ namespace caffe {
         solver_->net()->ClearParamDiffs(task.param_id_);
         async_iter_[ make_pair(task.param_id_, task.part_id_) ] += 1;
         update_cnt_ += 1;
+        calc_staleness(task.part_root_rank_);
 
         // copy model(data) in solver to mpi buffer
         mpi_buf = send_buf_[make_pair(root_rank, task.param_id_)].first;
@@ -181,6 +183,13 @@ namespace caffe {
       }
     }
 
+    template <typename Dtype>
+    void AsyncParamServer<Dtype>::calc_staleness(int rank) {
+        int64_t curr_upd = update_cnt_;
+        int64_t staleness = curr_upd - last_comms[rank];
+        last_comms[rank] = curr_upd;
+        LOG(INFO) << "rank: " << rank << "  staleness: " << staleness;
+    }
 
     template <typename Dtype>
     void AsyncParamServer<Dtype>::ProcessSendTask() {
@@ -222,6 +231,8 @@ namespace caffe {
 
         //increase sent count
         send_cnt_ += 1;
+
+        
       }
       if (send_request.size() != 0) {
         MPI_Waitall(send_request.size(), &send_request[0], MPI_STATUSES_IGNORE);
